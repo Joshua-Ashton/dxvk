@@ -13,7 +13,20 @@ namespace dxvk {
   : m_device    (device),
     m_pipeCache (pipelineCache),
     m_pipeMgr   (new DxvkPipelineManager(device.ptr())),
-    m_metaClear (metaClearObjects) { }
+    m_metaClear (metaClearObjects) {
+    for (uint32_t i = 0; i < m_descWrites.size(); i++) {
+      m_descWrites[i].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      m_descWrites[i].pNext            = nullptr;
+      m_descWrites[i].dstSet           = VK_NULL_HANDLE;
+      m_descWrites[i].dstBinding       = i;
+      m_descWrites[i].dstArrayElement  = 0;
+      m_descWrites[i].descriptorCount  = 1;
+      m_descWrites[i].descriptorType   = VkDescriptorType(0);
+      m_descWrites[i].pImageInfo       = &m_descInfos[i].image;
+      m_descWrites[i].pBufferInfo      = &m_descInfos[i].buffer;
+      m_descWrites[i].pTexelBufferView = &m_descInfos[i].texelBuffer;
+    }
+  }
   
   
   DxvkContext::~DxvkContext() {
@@ -1799,10 +1812,13 @@ namespace dxvk {
       m_cmd->allocateDescriptorSet(
         layout->descriptorSetLayout());
     
-    m_cmd->updateDescriptorSetWithTemplate(
-      dset, layout->descriptorTemplate(),
-      m_descInfos.data());
+    for (uint32_t i = 0; i < layout->bindingCount(); i++) {
+      m_descWrites[i].dstSet         = dset;
+      m_descWrites[i].descriptorType = layout->binding(i).type;
+    }
     
+    m_cmd->updateDescriptorSets(
+      layout->bindingCount(), m_descWrites.data());
     m_cmd->cmdBindDescriptorSet(bindPoint,
       layout->pipelineLayout(), dset);
   }

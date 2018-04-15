@@ -27,8 +27,7 @@ namespace dxvk {
     
     m_layout = new DxvkPipelineLayout(m_vkd,
       slotMapping.bindingCount(),
-      slotMapping.bindingInfos(),
-      VK_PIPELINE_BIND_POINT_COMPUTE);
+      slotMapping.bindingInfos());
     
     m_cs = cs->createShaderModule(m_vkd, slotMapping);
   }

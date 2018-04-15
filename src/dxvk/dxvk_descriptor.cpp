@@ -21,7 +21,8 @@ namespace dxvk {
   
   
   VkDescriptorSet DxvkDescriptorAlloc::alloc(VkDescriptorSetLayout layout) {
-    VkDescriptorSet set = allocFrom(m_pools[m_poolId], layout);
+    // Renderdoc workaround
+    VkDescriptorSet set = VK_NULL_HANDLE;
     
     if (set == VK_NULL_HANDLE) {
       if (++m_poolId >= m_pools.size())
@@ -45,8 +46,8 @@ namespace dxvk {
   
   
   VkDescriptorPool DxvkDescriptorAlloc::createDescriptorPool() {
-    constexpr uint32_t MaxSets = 256;
-    constexpr uint32_t MaxDesc = 2048;
+    constexpr uint32_t MaxSets = 1;
+    constexpr uint32_t MaxDesc = 64;
     
     std::array<VkDescriptorPoolSize, 7> pools = {{
       { VK_DESCRIPTOR_TYPE_SAMPLER,               MaxDesc },

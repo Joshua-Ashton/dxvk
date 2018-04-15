@@ -56,6 +56,9 @@ namespace dxvk {
       memReq.alignment = align(memReq.alignment , memAlloc.bufferImageGranularity());
     }
     
+    // Renderdoc workaround
+    memReq.size *= 2;
+    
     m_memory = memAlloc.alloc(memReq, memFlags);
     
     // Try to bind the allocated memory slice to the image
