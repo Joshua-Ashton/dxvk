@@ -1795,18 +1795,16 @@ namespace dxvk {
           VkPipelineBindPoint     bindPoint,
     const DxvkBindingState&       bindingState,
     const Rc<DxvkPipelineLayout>& layout) {
-    if (layout->bindingCount() != 0) {
-      const VkDescriptorSet dset =
-        m_cmd->allocateDescriptorSet(
-          layout->descriptorSetLayout());
-      
-      m_cmd->updateDescriptorSetWithTemplate(
-        dset, layout->descriptorTemplate(),
-        m_descInfos.data());
-      
-      m_cmd->cmdBindDescriptorSet(bindPoint,
-        layout->pipelineLayout(), dset);
-    }
+    const VkDescriptorSet dset =
+      m_cmd->allocateDescriptorSet(
+        layout->descriptorSetLayout());
+    
+    m_cmd->updateDescriptorSetWithTemplate(
+      dset, layout->descriptorTemplate(),
+      m_descInfos.data());
+    
+    m_cmd->cmdBindDescriptorSet(bindPoint,
+      layout->pipelineLayout(), dset);
   }
   
   
