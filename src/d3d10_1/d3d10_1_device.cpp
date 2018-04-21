@@ -327,9 +327,11 @@ namespace dxvk {
       } else*/if (desc.Format == DXGI_FORMAT_UNKNOWN) {
         // Structured buffer view
         viewInfo.format = VK_FORMAT_R32_UINT;
+		Logger::warn("D3D10Device: Structured Buffer View");
         viewInfo.rangeOffset = /*resourceDesc.StructureByteStride*/ sizeof(uint32_t) * bufInfo.FirstElement;
         viewInfo.rangeLength = /*resourceDesc.StructureByteStride*/ sizeof(uint32_t) * bufInfo.NumElements;
       } else {
+		Logger::warn("D3D10Device: Typed Buffer View");
         // Typed buffer view - must use an uncompressed color format
         viewInfo.format = m_dxgiAdapter->LookupFormat(
           desc.Format, DXGI_VK_FORMAT_MODE_COLOR).Format;
