@@ -19,6 +19,7 @@ d3d10_1_src = [
   'd3d10_1_view_dsv.cpp',
   'd3d10_1_view_rtv.cpp',
   'd3d10_1_view_srv.cpp',
+  '../d3d10_shared/d3d10_shared_main.cpp',
 ]
 
 

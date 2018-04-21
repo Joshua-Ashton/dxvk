@@ -106,7 +106,6 @@ namespace dxvk {
     
   void STDMETHODCALLTYPE D3D10Buffer::Unmap(void)
   {
-    Logger::warn("D3D10Buffer::Unmap: Stub"); 
   }
   
   Rc<DxvkBuffer> D3D10Buffer::CreateBuffer(

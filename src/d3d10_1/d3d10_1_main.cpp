@@ -31,7 +31,7 @@ extern "C" {
 		if (dxgiAdapter == nullptr) {
 			// We'll treat everything as hardware, even if the
 			// Vulkan device is actually a software device.
-			if (DriverType != D3D_DRIVER_TYPE_HARDWARE)
+			if (DriverType != D3D10_DRIVER_TYPE_HARDWARE)
 				Logger::warn("D3D10CreateDevice1: Unsupported driver type");
 
 			// We'll use the first adapter returned by a DXGI factory
@@ -47,15 +47,6 @@ extern "C" {
 				return E_FAIL;
 			}
 
-		}
-		else {
-			// In theory we could ignore these, but the Microsoft docs explicitly
-			// state that we need to return E_INVALIDARG in case the arguments are
-			// invalid. Both the driver type and software parameter can only be
-			// set if the adapter itself is unspecified.
-			// See: https://msdn.microsoft.com/en-us/library/windows/desktop/ff476082(v=vs.85).aspx
-			if (DriverType != D3D_DRIVER_TYPE_UNKNOWN || Software != nullptr)
-				return E_INVALIDARG;
 		}
 
 		// The adapter must obviously be a DXVK-compatible adapter so

@@ -57,10 +57,6 @@ namespace dxvk {
     }
     
     if (riid == __uuidof(ID3D10Debug))
-      return E_NOINTERFACE;      
-    
-    // Undocumented interfaces that are queried by some games
-    if (riid == GUID{0xd56e2a4c,0x5127,0x8437,{0x65,0x8a,0x98,0xc5,0xbb,0x78,0x94,0x98}})
       return E_NOINTERFACE;
     
     Logger::warn("D3D10DeviceContainer::QueryInterface: Unknown interface query");
@@ -94,7 +90,8 @@ namespace dxvk {
      || FAILED(adapter->QueryInterface(__uuidof(IDXGIVkAdapter),
           reinterpret_cast<void**>(&m_dxgiAdapter))))
       throw DxvkError("D3D10Device: Failed to query adapter");
-    
+
+	m_csChunk = new DxvkCsChunk();
 	m_csThread = new DxvkCsThread(m_dxvkDevice->createContext());
 
 	EmitCs([cDevice = m_dxvkDevice](DxvkContext* ctx) {

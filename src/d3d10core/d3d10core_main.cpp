@@ -21,4 +21,22 @@ extern "C" {
 		Logger::warn("D3D10CoreRegisterLayers: Stub");
 		return E_NOTIMPL;
 	}
+
+	DLLEXPORT HRESULT __stdcall DXGID3D10CreateDevice(HMODULE d3d10core, IDXGIFactory *factory, IDXGIAdapter *adapter,
+		unsigned int flags, const D3D_FEATURE_LEVEL *feature_levels, unsigned int level_count, void **device)
+	{
+		dxvk::Logger::warn("DXGID3D10CreateDevice: Stub");
+		return E_NOTIMPL;
+	}
+
+	DLLEXPORT HRESULT __stdcall DXGID3D10RegisterLayers(const struct dxgi_device_layer *layers, UINT layer_count)
+	{
+		dxvk::Logger::warn("DXGID3D10RegisterLayers: Stub");
+		return E_NOTIMPL;
+	}
+
+	DLLEXPORT void __stdcall D3D10CoreGetVersion()
+	{
+		dxvk::Logger::warn("D3D10CoreGetVersion: Stub");
+	}
 }
