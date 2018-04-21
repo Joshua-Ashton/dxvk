@@ -60,6 +60,7 @@ namespace dxvk {
     uint32_t array    = 0;
     uint32_t ms       = 0;
     uint32_t sampled  = 0;
+    uint32_t layered  = 0;
   };
   
   
@@ -307,6 +308,10 @@ namespace dxvk {
     
     uint32_t controlPointCount() const {
       return bit::extract(m_bits, 11, 16);
+    }
+    
+    bool precise() const {
+      return bit::extract(m_bits, 19, 22) != 0;
     }
     
   private:
