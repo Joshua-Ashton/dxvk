@@ -12,4 +12,8 @@ EXPORTS
 	D3D10GetPixelShaderProfile
 	D3D10GetVersion
 	D3D10RegisterLayers
+	D3D10CompileShader
+	D3D10ReflectShader
+	D3D10CreateBlob
+	D3D10GetInputSignatureBlob
 	RevertToOldImplementation

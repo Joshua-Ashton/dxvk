@@ -11,6 +11,13 @@ typedef HRESULT (__stdcall *REPLXCompileEffectFromMemory)(void *data, SIZE_T dat
 	const D3D10_SHADER_MACRO *defines, ID3D10Include *include, UINT hlsl_flags, UINT fx_flags,
 	ID3D10Blob **effect, ID3D10Blob **errors);
 
+typedef HRESULT(_stdcall *REPLXCompileShader)(LPCSTR pSrcData, SIZE_T SrcDataSize, LPCSTR pFileName, const D3D10_SHADER_MACRO* pDefines, LPD3D10INCLUDE pInclude,
+	LPCSTR pFunctionName, LPCSTR pProfile, UINT Flags, ID3D10Blob** ppShader, ID3D10Blob** ppErrorMsgs);
+
+typedef HRESULT(_stdcall *REPLXCreateBlob)(SIZE_T size, LPD3D10BLOB *ppBuffer);
+
+typedef HRESULT(_stdcall *REPLXGetInputSignatureBlob)(const void* pShaderBytecode, SIZE_T bytecodeLength, ID3D10Blob** ppSignatureBlob);
+
 class REPLXInterface
 {
 public:
@@ -22,6 +29,9 @@ public:
 		{
 			CreateEffect = REPLXCreateEffectFromMemory(GetProcAddress(replxModule, "D3D10CreateEffectFromMemory"));
 			CompileEffect = REPLXCompileEffectFromMemory(GetProcAddress(replxModule, "D3D10CompileEffectFromMemory"));
+			CompileShader = REPLXCompileShader(GetProcAddress(replxModule, "D3D10CompileShader"));
+			CreateBlob = REPLXCreateBlob(GetProcAddress(replxModule, "D3D10CreateBlob"));
+			GetInputSignatureBlob = REPLXGetInputSignatureBlob(GetProcAddress(replxModule, "D3D10GetInputSignatureBlob"));
 		}
 		else
 		{
@@ -40,6 +50,9 @@ public:
 
 	REPLXCreateEffectFromMemory CreateEffect;
 	REPLXCompileEffectFromMemory CompileEffect;
+	REPLXCompileShader CompileShader;
+	REPLXCreateBlob CreateBlob;
+	REPLXGetInputSignatureBlob GetInputSignatureBlob;
 
 private:
 	static REPLXInterface* s_replxInterface;
@@ -59,15 +72,23 @@ extern "C" {
 		const D3D10_SHADER_MACRO *defines, ID3D10Include *include, UINT hlsl_flags, UINT fx_flags,
 		ID3D10Blob **effect, ID3D10Blob **errors)
 	{
-		Logger::warn("D3D10CompileEffectFromMemory: Stub");
-
-		if (effect)
-			*effect = nullptr;
-
-		if (errors)
-			*errors = nullptr;
-
 		return REPLXInterface::Get().CompileEffect(data, data_size, filename, defines, include, hlsl_flags, fx_flags, effect, errors);
+	}
+
+	DLLEXPORT HRESULT __stdcall D3D10CompileShader(LPCSTR pSrcData, SIZE_T SrcDataSize, LPCSTR pFileName, const D3D10_SHADER_MACRO* pDefines, LPD3D10INCLUDE pInclude,
+		LPCSTR pFunctionName, LPCSTR pProfile, UINT Flags, ID3D10Blob** ppShader, ID3D10Blob** ppErrorMsgs)
+	{
+		return REPLXInterface::Get().CompileShader(pSrcData, SrcDataSize, pFileName, pDefines, pInclude, pFunctionName, pProfile, Flags, ppShader, ppErrorMsgs);
+	}
+
+	DLLEXPORT HRESULT __stdcall D3D10CreateBlob(SIZE_T size, LPD3D10BLOB *ppBuffer)
+	{
+		return REPLXInterface::Get().CreateBlob(size, ppBuffer);
+	}
+
+	DLLEXPORT HRESULT __stdcall D3D10GetInputSignatureBlob(const void* pShaderBytecode, SIZE_T bytecodeLength, ID3D10Blob** ppSignatureBlob)
+	{
+		return REPLXInterface::Get().GetInputSignatureBlob(pShaderBytecode, bytecodeLength, ppSignatureBlob);
 	}
 
 	DLLEXPORT HRESULT __stdcall D3D10DisassembleEffect(ID3D10Effect *pEffect, BOOL EnableColorCode, ID3D10Blob** ppDisassembly)
@@ -140,6 +161,16 @@ extern "C" {
 
 	DLLEXPORT void __stdcall RevertToOldImplementation()
 	{
-		Logger::warn("D3D10RegisterLayers: Stub");
+		Logger::warn("RevertToOldImplementation: Stub");
+	}
+
+	DLLEXPORT HRESULT __stdcall D3D10ReflectShader(
+		const void                   *pShaderBytecode,
+		      SIZE_T                 BytecodeLength,
+			  ID3D10ShaderReflection **ppReflector
+	)
+	{
+		Logger::warn("D3D10ReflectShader: Stub");
+		return E_NOTIMPL;
 	}
 }
