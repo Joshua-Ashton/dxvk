@@ -116,6 +116,179 @@ namespace dxvk {
   D3D10CommonTexture::~D3D10CommonTexture() {
     
   }
+
+  HRESULT D3D10CommonTexture::Map(UINT Subresource, D3D10_MAP MapType, UINT MapFlags, void * pMappedData)
+  {
+	  const Rc<DxvkImage>  mappedImage = GetImage();
+	  const Rc<DxvkBuffer> mappedBuffer = GetMappedBuffer();
+
+	  if (GetMapMode() == D3D10_COMMON_TEXTURE_MAP_MODE_NONE) {
+		  Logger::err("D3D11: Cannot map a device-local image");
+		  return E_INVALIDARG;
+	  }
+
+	  // Parameter validation was successful
+	  VkImageSubresource subresource =
+		  GetSubresourceFromIndex(
+			  VK_IMAGE_ASPECT_COLOR_BIT, Subresource);
+
+	  SetMappedSubresource(subresource);
+
+	  const VkImageType imageType = mappedImage->info().type;
+	  if (GetMapMode() == D3D10_COMMON_TEXTURE_MAP_MODE_DIRECT) {
+
+		  // Wait for the resource to become available
+		  if (!m_device->WaitForResource(mappedImage, MapFlags))
+			  return DXGI_ERROR_WAS_STILL_DRAWING;
+
+		  // Query the subresource's memory layout and hope that
+		  // the application respects the returned pitch values.
+		  VkSubresourceLayout layout = mappedImage->querySubresourceLayout(subresource);
+
+		  if (pMappedData)
+		  {
+			  switch (imageType)
+			  {
+			  case VK_IMAGE_TYPE_1D:
+			  {
+				  void** pData = (void**)pMappedData;
+				  *pData = mappedImage->mapPtr(layout.offset);
+			  } break;
+
+			  default:
+			  case VK_IMAGE_TYPE_2D:
+			  {
+				  D3D10_MAPPED_TEXTURE2D* pMappedResource = (D3D10_MAPPED_TEXTURE2D*)pMappedData;
+				  pMappedResource->pData = mappedImage->mapPtr(layout.offset);
+				  pMappedResource->RowPitch = layout.rowPitch;
+			  } break;
+
+			  case VK_IMAGE_TYPE_3D:
+			  {
+				  D3D10_MAPPED_TEXTURE3D* pMappedResource = (D3D10_MAPPED_TEXTURE3D*)pMappedData;
+				  pMappedResource->pData = mappedImage->mapPtr(layout.offset);
+				  pMappedResource->RowPitch = layout.rowPitch;
+			  } break;
+
+			  }
+		  }
+		  return S_OK;
+	  }
+	  else {
+		  // Query format info which we need to compute
+		  // the row pitch and layer pitch properly.
+		  const DxvkFormatInfo* formatInfo = imageFormatInfo(mappedImage->info().format);
+
+		  const VkExtent3D levelExtent = mappedImage->mipLevelExtent(subresource.mipLevel);
+		  const VkExtent3D blockCount = util::computeBlockCount(
+			  levelExtent, formatInfo->blockSize);
+
+		  DxvkPhysicalBufferSlice physicalSlice;
+
+		  if (MapType == D3D10_MAP_WRITE_DISCARD) {
+			  // We do not have to preserve the contents of the
+			  // buffer if the entire image gets discarded.
+			  physicalSlice = mappedBuffer->allocPhysicalSlice();
+
+			  m_device->EmitCs([
+				  cImageBuffer = mappedBuffer,
+					  cPhysicalSlice = physicalSlice
+			  ] (DxvkContext* ctx) {
+				  ctx->invalidateBuffer(cImageBuffer, cPhysicalSlice);
+			  });
+		  }
+		  else {
+			  // When using any map mode which requires the image contents
+			  // to be preserved, and if the GPU has write access to the
+			  // image, copy the current image contents into the buffer.
+			  const bool copyExistingData = Desc()->Usage == D3D10_USAGE_STAGING;
+
+			  if (copyExistingData) {
+				  const VkImageSubresourceLayers subresourceLayers = {
+					  subresource.aspectMask,
+					  subresource.mipLevel,
+					  subresource.arrayLayer, 1 };
+
+				  m_device->EmitCs([
+					  cImageBuffer = mappedBuffer,
+						  cImage = mappedImage,
+						  cSubresources = subresourceLayers,
+						  cLevelExtent = levelExtent
+				  ] (DxvkContext* ctx) {
+					  ctx->copyImageToBuffer(
+						  cImageBuffer, 0, VkExtent2D{ 0u, 0u },
+						  cImage, cSubresources, VkOffset3D{ 0, 0, 0 },
+						  cLevelExtent);
+				  });
+			  }
+
+			  m_device->WaitForResource(mappedBuffer->resource(), 0);
+			  physicalSlice = mappedBuffer->slice();
+		  }
+
+		  if (pMappedData)
+		  {
+			  switch (imageType)
+			  {
+			  case VK_IMAGE_TYPE_1D:
+			  {
+				  void** pData = (void**)pMappedData;
+				  *pData = physicalSlice.mapPtr(0);
+			  } break;
+
+			  default:
+			  case VK_IMAGE_TYPE_2D:
+			  {
+				  D3D10_MAPPED_TEXTURE2D* pMappedResource = (D3D10_MAPPED_TEXTURE2D*)pMappedData;
+				  pMappedResource->pData = physicalSlice.mapPtr(0);
+				  pMappedResource->RowPitch = formatInfo->elementSize * blockCount.width;
+			  } break;
+
+			  case VK_IMAGE_TYPE_3D:
+			  {
+				  D3D10_MAPPED_TEXTURE3D* pMappedResource = (D3D10_MAPPED_TEXTURE3D*)pMappedData;
+				  pMappedResource->pData = physicalSlice.mapPtr(0);
+				  pMappedResource->RowPitch = formatInfo->elementSize * blockCount.width;
+			  } break;
+
+			  }
+		  }
+		  return S_OK;
+	  }
+  }
+
+  void D3D10CommonTexture::Unmap(UINT Subresource)
+  {
+	  if (GetMapMode() == D3D10_COMMON_TEXTURE_MAP_MODE_BUFFER) {
+		  // Now that data has been written into the buffer,
+		  // we need to copy its contents into the image
+		  const Rc<DxvkImage>  mappedImage = GetImage();
+		  const Rc<DxvkBuffer> mappedBuffer = GetMappedBuffer();
+
+		  VkImageSubresource subresource = GetMappedSubresource();
+
+		  VkExtent3D levelExtent = mappedImage
+			  ->mipLevelExtent(subresource.mipLevel);
+
+		  VkImageSubresourceLayers subresourceLayers = {
+			  subresource.aspectMask,
+			  subresource.mipLevel,
+			  subresource.arrayLayer, 1 };
+
+		  m_device->EmitCs([
+			  cSrcBuffer = mappedBuffer,
+				  cDstImage = mappedImage,
+				  cDstLayers = subresourceLayers,
+				  cDstLevelExtent = levelExtent
+		  ] (DxvkContext* ctx) {
+			  ctx->copyBufferToImage(cDstImage, cDstLayers,
+				  VkOffset3D{ 0, 0, 0 }, cDstLevelExtent,
+				  cSrcBuffer, 0, { 0u, 0u });
+		  });
+	  }
+
+	 ClearMappedSubresource();
+  }
   
   
   VkImageSubresource D3D10CommonTexture::GetSubresourceFromIndex(
@@ -160,11 +333,6 @@ namespace dxvk {
     
     return S_OK;
   }
-
-  void D3D10CommonTexture::MapInternal(UINT Subresource, D3D10_MAP MapType, UINT MapFlags, void ** ppData)
-  {
-  }
-  
   
   BOOL D3D10CommonTexture::CheckImageSupport(
     const DxvkImageCreateInfo*  pImageInfo,
@@ -505,14 +673,13 @@ namespace dxvk {
           UINT MapFlags,
           void **ppData)
   {
-    Logger::warn("D3D10Texture1D::Map: Stub");
-    return E_NOTIMPL;
+	  return m_texture.Map(Subresource, MapType, MapFlags, (void*)ppData);
   }
 
   void STDMETHODCALLTYPE D3D10Texture1D::Unmap(
           UINT Subresource)
   {
-    Logger::warn("D3D10Texture1D::Unmap: Stub");
+	  m_texture.Unmap(Subresource);
   }
 
   HRESULT STDMETHODCALLTYPE D3D10Texture2D::Map( 
@@ -521,14 +688,13 @@ namespace dxvk {
           UINT MapFlags,
           D3D10_MAPPED_TEXTURE2D *pMappedTex2D)
   {
-    Logger::warn("D3D10Texture2D::Map: Stub");
-    return E_NOTIMPL;
+	  return m_texture.Map(Subresource, MapType, MapFlags, (void*)pMappedTex2D);
   }
 
     void STDMETHODCALLTYPE D3D10Texture2D::Unmap( 
               UINT Subresource)
     {
-      Logger::warn("D3D10Texture2D::Unmap: Stub");
+		m_texture.Unmap(Subresource);
     }
 
   HRESULT STDMETHODCALLTYPE D3D10Texture3D::Map( 
@@ -537,13 +703,12 @@ namespace dxvk {
           UINT MapFlags,
           D3D10_MAPPED_TEXTURE3D *pMappedTex3D)
   {
-    Logger::warn("D3D10Texture3D::Map: Stub");
-    return E_NOTIMPL;
+	  return m_texture.Map(Subresource, MapType, MapFlags, (void*)pMappedTex3D);
   }
 
     void STDMETHODCALLTYPE D3D10Texture3D::Unmap( 
               UINT Subresource)
     {
-      Logger::warn("D3D10Texture3D::Unmap: Stub");
+		m_texture.Unmap(Subresource);
     }
 }

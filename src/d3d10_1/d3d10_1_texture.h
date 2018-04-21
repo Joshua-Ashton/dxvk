@@ -71,6 +71,9 @@ namespace dxvk {
     const D3D10_COMMON_TEXTURE_DESC* Desc() const {
       return &m_desc;
     }
+
+	HRESULT Map(UINT Subresource, D3D10_MAP MapType, UINT MapFlags, void* pMappedData);
+	void Unmap(UINT Subresource);
     
     /**
      * \brief Map mode
@@ -159,11 +162,6 @@ namespace dxvk {
      */
     static HRESULT NormalizeTextureProperties(
             D3D10_COMMON_TEXTURE_DESC* pDesc);
-
-	void MapInternal(UINT Subresource,
-		D3D10_MAP MapType,
-		UINT MapFlags,
-		void **ppData);
     
   private:
     
