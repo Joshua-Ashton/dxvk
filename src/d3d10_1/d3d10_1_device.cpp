@@ -56,8 +56,8 @@ namespace dxvk {
       return S_OK;
     }
     
-    if (riid == __uuidof(ID3D10Debug))
-      return E_NOINTERFACE;
+    //if (riid == __uuidof(ID3D10Debug))
+      //return E_NOINTERFACE;
     
     Logger::warn("D3D10DeviceContainer::QueryInterface: Unknown interface query");
     Logger::warn(str::format(riid));
@@ -311,8 +311,8 @@ namespace dxvk {
       D3D10_BUFFER_SRV bufInfo;
       
       if (desc.ViewDimension == D3D10_SRV_DIMENSION_BUFFER) {
-        bufInfo.FirstElement = desc.Buffer.FirstElement;
-        bufInfo.NumElements  = desc.Buffer.NumElements;
+        bufInfo.ElementOffset = desc.Buffer.ElementOffset;
+        bufInfo.ElementWidth  = desc.Buffer.ElementWidth;
       } else {
         Logger::err("D3D10Device: Invalid buffer view dimension");
         return E_INVALIDARG;
@@ -322,14 +322,14 @@ namespace dxvk {
         // Raw buffer view. We'll represent this as a
         // uniform texel buffer with UINT32 elements.
         viewInfo.format = VK_FORMAT_R32_UINT;
-        viewInfo.rangeOffset = sizeof(uint32_t) * bufInfo.FirstElement;
-        viewInfo.rangeLength = sizeof(uint32_t) * bufInfo.NumElements;
+        viewInfo.rangeOffset = sizeof(uint32_t) * bufInfo.ElementOffset;
+        viewInfo.rangeLength = sizeof(uint32_t) * bufInfo.ElementWidth;
       } else*/if (desc.Format == DXGI_FORMAT_UNKNOWN) {
         // Structured buffer view
         viewInfo.format = VK_FORMAT_R32_UINT;
 		Logger::warn("D3D10Device: Structured Buffer View");
-        viewInfo.rangeOffset = /*resourceDesc.StructureByteStride*/ sizeof(uint32_t) * bufInfo.FirstElement;
-        viewInfo.rangeLength = /*resourceDesc.StructureByteStride*/ sizeof(uint32_t) * bufInfo.NumElements;
+        viewInfo.rangeOffset = /*resourceDesc.StructureByteStride*/ sizeof(uint32_t) * bufInfo.ElementOffset;
+        viewInfo.rangeLength = /*resourceDesc.StructureByteStride*/ sizeof(uint32_t) * bufInfo.ElementWidth;
       } else {
 		Logger::warn("D3D10Device: Typed Buffer View");
         // Typed buffer view - must use an uncompressed color format
@@ -337,8 +337,8 @@ namespace dxvk {
           desc.Format, DXGI_VK_FORMAT_MODE_COLOR).Format;
         
         const DxvkFormatInfo* formatInfo = imageFormatInfo(viewInfo.format);
-        viewInfo.rangeOffset = formatInfo->elementSize * bufInfo.FirstElement;
-        viewInfo.rangeLength = formatInfo->elementSize * bufInfo.NumElements;
+        viewInfo.rangeOffset = formatInfo->elementSize * bufInfo.ElementOffset;
+        viewInfo.rangeLength = formatInfo->elementSize * bufInfo.ElementWidth;
         
         if (formatInfo->flags.test(DxvkFormatFlag::BlockCompressed)) {
           Logger::err("D3D10Device: Compressed formats for buffer views not supported");
@@ -738,7 +738,7 @@ namespace dxvk {
   
   HRESULT STDMETHODCALLTYPE D3D10Device::CreateInputLayout(
     const D3D10_INPUT_ELEMENT_DESC*   pInputElementDescs,
-          UINT                        NumElements,
+          UINT                        ElementWidth,
     const void*                       pShaderBytecodeWithInputSignature,
           SIZE_T                      BytecodeLength,
           ID3D10InputLayout**         ppInputLayout) {
@@ -754,7 +754,7 @@ namespace dxvk {
       std::vector<DxvkVertexAttribute> attributes;
       std::vector<DxvkVertexBinding>   bindings;
       
-      for (uint32_t i = 0; i < NumElements; i++) {
+      for (uint32_t i = 0; i < ElementWidth; i++) {
         const DxbcSgnEntry* entry = inputSignature->find(
           pInputElementDescs[i].SemanticName,
           pInputElementDescs[i].SemanticIndex);

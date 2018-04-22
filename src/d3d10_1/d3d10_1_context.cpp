@@ -394,7 +394,7 @@ namespace dxvk {
     clearRect.baseArrayLayer      = 0;
     clearRect.layerCount          = view->info().numLayers;
     
-    if (GetFeatureLevel() < D3D_FEATURE_LEVEL_10_0)
+    if (GetFeatureLevel() < D3D10_FEATURE_LEVEL_10_0)
       clearRect.layerCount        = 1;
     
     EmitCs([
@@ -445,7 +445,7 @@ namespace dxvk {
     clearRect.baseArrayLayer      = 0;
     clearRect.layerCount          = view->info().numLayers;
     
-    if (GetFeatureLevel() < D3D_FEATURE_LEVEL_10_0)
+    if (GetFeatureLevel() < D3D10_FEATURE_LEVEL_10_0)
       clearRect.layerCount        = 1;
     
     EmitCs([

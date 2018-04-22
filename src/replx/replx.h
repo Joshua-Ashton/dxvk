@@ -49,6 +49,6 @@ private:
 extern "C" {
 #undef REPLX_ARGS
 #define REPLX_WRAP(returntype, name, ...) DLLEXPORT returntype __stdcall D3D10##name ( __VA_ARGS__ )
-#define REPLX_ARGS(returntype, name, ...) { return REPLXInterface::Get().##name (__VA_ARGS__); }
+#define REPLX_ARGS(returntype, name, ...) { return REPLXInterface::Get() . name (__VA_ARGS__); }
 #include "replx_interfaces.h"
 }

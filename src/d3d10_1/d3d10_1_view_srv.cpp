@@ -86,8 +86,8 @@ namespace dxvk {
         
 		pDesc->Format = DXGI_FORMAT_UNKNOWN;
 		pDesc->ViewDimension = D3D10_SRV_DIMENSION_BUFFER;
-		pDesc->Buffer.FirstElement = 0;
-		pDesc->Buffer.NumElements = bufferDesc.ByteWidth / sizeof(uint32_t); //bufferDesc.StructureByteStride;
+		pDesc->Buffer.ElementOffset = 0;
+		pDesc->Buffer.ElementWidth = bufferDesc.ByteWidth / sizeof(uint32_t); //bufferDesc.StructureByteStride;
       } return S_OK;
       
       case D3D10_RESOURCE_DIMENSION_TEXTURE1D: {
