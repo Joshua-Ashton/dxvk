@@ -817,7 +817,7 @@ namespace dxvk {
         case DxbcResourceDim::Texture1DArr:   return { spv::Dim1D,     1, 0, isUav ? 2u : 1u, 1u };
         case DxbcResourceDim::Texture2D:      return { spv::Dim2D,     1, 0, isUav ? 2u : 1u, 0u };
         case DxbcResourceDim::Texture2DArr:   return { spv::Dim2D,     1, 0, isUav ? 2u : 1u, 1u };
-        case DxbcResourceDim::Texture2DMs:    return { spv::Dim2D,     0, 1, isUav ? 2u : 1u, 0u };
+        case DxbcResourceDim::Texture2DMs:    return { spv::Dim2D,     1, 1, isUav ? 2u : 1u, 0u };
         case DxbcResourceDim::Texture2DMsArr: return { spv::Dim2D,     1, 1, isUav ? 2u : 1u, 1u };
         case DxbcResourceDim::Texture3D:      return { spv::Dim3D,     0, 0, isUav ? 2u : 1u, 0u };
         case DxbcResourceDim::TextureCube:    return { spv::DimCube,   1, 0, isUav ? 2u : 1u, 0u };
@@ -833,6 +833,7 @@ namespace dxvk {
       case DxbcResourceDim::Texture1DArr:   m_module.enableCapability(spv::CapabilityImage1D);        break;
       case DxbcResourceDim::TextureCube:    m_module.enableCapability(spv::CapabilityImageCubeArray); break;
       case DxbcResourceDim::TextureCubeArr: m_module.enableCapability(spv::CapabilityImageCubeArray); break;
+      case DxbcResourceDim::Texture2DMs:    m_module.enableCapability(spv::CapabilityImageMSArray);   break;
       case DxbcResourceDim::Texture2DMsArr: m_module.enableCapability(spv::CapabilityImageMSArray);   break;
       default: break; // No additional capabilities required
     }
@@ -2630,7 +2631,8 @@ namespace dxvk {
     if (resinfoType == DxbcResinfoType::RcpFloat) {
       imageSize.id = m_module.opFDiv(
         getVectorTypeId(imageSize.type),
-        m_module.constvec4f32(1.0f, 1.0f, 1.0f, 1.0f),
+        emitBuildConstVecf32(1.0f, 1.0f, 1.0f, 1.0f,
+          DxbcRegMask::firstN(imageSize.type.ccount)).id,
         imageSize.id);
     }
     
@@ -2684,8 +2686,8 @@ namespace dxvk {
     const uint32_t samplerId = samplerReg.idx[0].offset;
     
     // Load texture coordinates
-    const DxbcRegisterValue coord = emitLoadTexCoord(
-      texCoordReg, m_textures.at(textureId).imageInfo);
+    const DxbcRegisterValue coord = emitRegisterLoad(texCoordReg,
+      DxbcRegMask::firstN(getTexLayerDim(m_textures.at(textureId).imageInfo)));
     
     // Query the LOD. The result is a two-dimensional float32
     // vector containing the mip level and virtual LOD numbers.
@@ -4558,6 +4560,16 @@ namespace dxvk {
         getVectorTypeId(result.type),
         m_module.opLoad(info.typeId, info.varId));
     }
+    
+    if (info.image.array && !info.image.layered) {
+      const uint32_t index = result.type.ccount - 1;
+      const uint32_t zero  = m_module.constu32(0);
+      
+      result.id = m_module.opCompositeInsert(
+        getVectorTypeId(result.type),
+        zero, result.id, 1, &index);
+    }
+    
     return result;
   }
   
@@ -4612,7 +4624,6 @@ namespace dxvk {
           default: throw DxvkError("Dxbc: Invalid tex coord type");
         }
       }();
-      
       
       coordVector.id = m_module.opCompositeInsert(
         getVectorTypeId(coordVector.type),
@@ -6239,7 +6250,7 @@ namespace dxvk {
       case DxbcResourceDim::Texture1D:        return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
       case DxbcResourceDim::Texture1DArr:     return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
       case DxbcResourceDim::Texture2D:        return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-      case DxbcResourceDim::Texture2DMs:      return VK_IMAGE_VIEW_TYPE_2D;
+      case DxbcResourceDim::Texture2DMs:      return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
       case DxbcResourceDim::Texture2DArr:     return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
       case DxbcResourceDim::Texture2DMsArr:   return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
       case DxbcResourceDim::TextureCube:      return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
