@@ -412,7 +412,7 @@ namespace dxvk {
           break;
           
         case D3D10_SRV_DIMENSION_TEXTURE2DMS:
-          viewInfo.type      = VK_IMAGE_VIEW_TYPE_2D;
+          viewInfo.type      = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
           viewInfo.minLevel  = 0;
           viewInfo.numLevels = 1;
           viewInfo.minLayer  = 0;
