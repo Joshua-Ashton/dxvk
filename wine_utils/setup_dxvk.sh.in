@@ -5,8 +5,8 @@ export WINEDEBUG=-all
 dlls_dir=`dirname "$(readlink -f $0)"`
 build_arch='@arch@'
 
-if [ ! -f "$dlls_dir/d3d11.dll" ] || [ ! -f "$dlls_dir/dxgi.dll" ]; then
-    echo "d3d11.dll or dxgi.dll not found in $dlls_dir" >&2
+if [ ! -f "$dlls_dir/d3d11.dll" ] || [ ! -f "$dlls_dir/dxgi.dll" ] || [ ! -f "$dlls_dir/d3d10.dll" ] || [ ! -f "$dlls_dir/d3d10_1.dll" ] || [ ! -f "$dlls_dir/d3d10core.dll" ]; then
+    echo "d3d11.dll or dxgi.dll or d3d10.dll or d3d10_1.dll or d3d10core.dll not found in $dlls_dir" >&2
     exit 1
 fi
 
@@ -165,8 +165,14 @@ check)
     ;;
 esac
 
-echo '[1/2] d3d11:'
+echo '[1/5] d3d11:'
 $fun d3d11
-echo '[2/2] dxgi:'
+echo '[2/5] dxgi:'
 $fun dxgi
+echo '[3/5] d3d10:'
+$fun d3d10
+echo '[4/5] d3d10_1:'
+$fun d3d10_1
+echo '[5/5] d3d10core:'
+$fun d3d10core
 exit $ret
