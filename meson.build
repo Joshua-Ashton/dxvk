@@ -14,6 +14,18 @@ if dxvk_compiler.get_id() == 'msvc'
 	add_global_arguments('/std:' + dxvk_cpp_std, language : 'cpp')
 endif
 
+dxup_compiler = meson.get_compiler('cpp')
+if dxup_compiler.get_id() == 'msvc'
+  add_global_arguments('-DNOMINMAX', language : 'cpp')
+  dxup_cpp_std='c++latest'
+else
+  dxup_cpp_std='c++1z'
+endif
+
+if dxup_compiler.get_id() == 'msvc'
+	add_global_arguments('/std:' + dxup_cpp_std, language : 'cpp')
+endif
+
 dxvk_include_path = include_directories('./include')
 
 if (cpu_family == 'x86_64')
@@ -35,6 +47,8 @@ glsl_generator = generator(glsl_compiler,
   output    : [ '@BASENAME@.h' ],
   arguments : [ '-V', '--vn', '@BASENAME@', '@INPUT@', '-o', '@OUTPUT@' ])
 
+subdir('thirdparty/dxup/src')
+  
 subdir('src')
 
 enable_tests = get_option('enable_tests')

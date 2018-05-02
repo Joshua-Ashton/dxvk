@@ -30,8 +30,19 @@ function build_arch {
   mkdir "$DXVK_BUILD_DIR/x$1"
 
   cp "$DXVK_BUILD_DIR/install.$1/bin/d3d11.dll" "$DXVK_BUILD_DIR/x$1/d3d11.dll"
+  cp "$DXVK_BUILD_DIR/install.$1/bin/d3d10.dll" "$DXVK_BUILD_DIR/x$1/d3d10.dll"
+  cp "$DXVK_BUILD_DIR/install.$1/bin/d3d10_1.dll" "$DXVK_BUILD_DIR/x$1/d3d10_1.dll"
+  cp "$DXVK_BUILD_DIR/install.$1/bin/dxgi_original.dll" "$DXVK_BUILD_DIR/x$1/dxgi_original.dll"
   cp "$DXVK_BUILD_DIR/install.$1/bin/dxgi.dll" "$DXVK_BUILD_DIR/x$1/dxgi.dll"
   cp "$DXVK_BUILD_DIR/install.$1/bin/setup_dxvk.sh" "$DXVK_BUILD_DIR/x$1/setup_dxvk.sh"
+  
+  if [$1 == "64"]; then
+	cp "$DXVK_SRC_DIR/thirdparty/dxup/d3d10_original/x64/d3d10_original.dll" "$DXVK_BUILD_DIR/x$1/d3d10_original.dll"
+	cp "$DXVK_SRC_DIR/thirdparty/dxup/d3dx10_43/x64/d3dx10_43.dll" "$DXVK_BUILD_DIR/x$1/d3dx10_43.dll"
+  else
+	cp "$DXVK_SRC_DIR/thirdparty/dxup/d3d10_original/x86/d3d10_original.dll" "$DXVK_BUILD_DIR/x$1/d3d10_original.dll"
+	cp "$DXVK_SRC_DIR/thirdparty/dxup/d3dx10_43/x86/d3dx10_43.dll" "$DXVK_BUILD_DIR/x$1/d3dx10_43.dll"
+  fi
   
   rm -R "$DXVK_BUILD_DIR/wine.$1"
   rm -R "$DXVK_BUILD_DIR/build.$1"
