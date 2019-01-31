@@ -4,8 +4,10 @@ namespace dxvk::hud {
   
   HudDeviceInfo::HudDeviceInfo(const Rc<DxvkDevice>& device) {
     VkPhysicalDeviceProperties props = device->adapter()->deviceProperties();
+    VkPhysicalDeviceDriverPropertiesKHR driver = device->adapter()->devicePropertiesExt().khrDeviceDriverProperties;
     m_deviceName = props.deviceName;
     m_driverVer = str::format("Driver: ",
+      driver.driverName, " - ",
       VK_VERSION_MAJOR(props.driverVersion), ".",
       VK_VERSION_MINOR(props.driverVersion), ".",
       VK_VERSION_PATCH(props.driverVersion));
