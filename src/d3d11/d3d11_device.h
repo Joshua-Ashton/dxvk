@@ -436,7 +436,8 @@ namespace dxvk {
           IDXGIAdapter*       pAdapter,
           DxvkAdapter*        pDxvkAdapter,
           D3D_FEATURE_LEVEL   FeatureLevel,
-          UINT                FeatureFlags);
+          UINT                FeatureFlags,
+          UINT                SDKVersion);
     
     ~D3D11DXGIDevice();
     
@@ -495,6 +496,8 @@ namespace dxvk {
     Rc<DxvkDevice> STDMETHODCALLTYPE GetDXVKDevice();
 
   private:
+
+    UINT                m_sdkVersion;
 
     Com<IDXGIAdapter>   m_dxgiAdapter;
 

@@ -1773,11 +1773,13 @@ namespace dxvk {
           IDXGIAdapter*       pAdapter,
           DxvkAdapter*        pDxvkAdapter,
           D3D_FEATURE_LEVEL   FeatureLevel,
-          UINT                FeatureFlags)
+          UINT                FeatureFlags,
+          UINT                SDKVersion)
   : m_dxgiAdapter   (pAdapter),
     m_dxvkAdapter   (pDxvkAdapter),
     m_dxvkDevice    (CreateDevice(FeatureLevel)),
     m_d3d11Device   (this, FeatureLevel, FeatureFlags),
+    m_sdkVersion    (SDKVersion),
     m_d3d11Interop  (this, &m_d3d11Device),
     m_wineFactory   (this, &m_d3d11Device),
     m_frameLatencyCap(m_d3d11Device.GetOptions()->maxFrameLatency) {
@@ -1990,7 +1992,8 @@ namespace dxvk {
     uint32_t flHi = (uint32_t(FeatureLevel) >> 12);
     uint32_t flLo = (uint32_t(FeatureLevel) >> 8) & 0x7;
 
-    std::string apiName = str::format("D3D11 FL ", flHi, "_", flLo);
+    std::string d3dVersion = DxvkDevice::decodeAPIVersion(m_sdkVersion);
+    std::string apiName = str::format(d3dVersion, " FL ", flHi, "_", flLo);
     return m_dxvkAdapter->createDevice(apiName, deviceFeatures);
   }
 

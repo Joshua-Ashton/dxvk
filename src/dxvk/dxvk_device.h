@@ -62,6 +62,23 @@ namespace dxvk {
     
     constexpr static VkDeviceSize DefaultStagingBufferSize = 4 * 1024 * 1024;
   public:
+
+    // This gets orred into the SDKVersion when we create the device.
+    // This way we can detect what API is being used and also keep access
+    // to the SDKVersion in case we need it in the future.
+    constexpr static UINT Direct3D10APIToken = 0xFFFF0000u;
+    constexpr static UINT Direct3D11APIToken = 0xEFFF0000u;
+    
+    static inline std::string decodeAPIVersion(UINT SDKVersion) {
+      if ( (SDKVersion & 0xFFFF0000u) == Direct3D10APIToken)
+        return "D3D10";
+
+      return "D3D11";
+    }
+
+    static inline UINT decodeSDKVersion(UINT SDKVersion) {
+      return SDKVersion & 0x0000FFFF;
+    }
     
     DxvkDevice(
             std::string               clientApi,

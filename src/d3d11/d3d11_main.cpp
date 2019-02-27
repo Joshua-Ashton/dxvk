@@ -15,10 +15,11 @@ namespace dxvk {
 extern "C" {
   using namespace dxvk;
   
-  DLLEXPORT HRESULT __stdcall D3D11CoreCreateDevice(
+  HRESULT DXVKCoreCreateDevice(
           IDXGIFactory*       pFactory,
           IDXGIAdapter*       pAdapter,
           UINT                Flags,
+          UINT                SDKVersion,
     const D3D_FEATURE_LEVEL*  pFeatureLevels,
           UINT                FeatureLevels,
           ID3D11Device**      ppDevice) {
@@ -84,7 +85,7 @@ extern "C" {
     try {
       Logger::info(str::format("D3D11CoreCreateDevice: Using feature level ", fl));
       Com<D3D11DXGIDevice> device = new D3D11DXGIDevice(
-        pAdapter, dxvkAdapter.ptr(), fl, Flags);
+        pAdapter, dxvkAdapter.ptr(), fl, Flags, SDKVersion);
       
       return device->QueryInterface(
         __uuidof(ID3D11Device),
@@ -95,6 +96,22 @@ extern "C" {
     }
   }
   
+  DLLEXPORT HRESULT __stdcall D3D11CoreCreateDevice(
+        IDXGIFactory*       pFactory,
+        IDXGIAdapter*       pAdapter,
+        UINT                Flags,
+  const D3D_FEATURE_LEVEL*  pFeatureLevels,
+        UINT                FeatureLevels,
+        ID3D11Device**      ppDevice) {
+    return DXVKCoreCreateDevice(
+      pFactory,
+      pAdapter,
+      Flags,
+      DxvkDevice::Direct3D11APIToken,
+      pFeatureLevels,
+      FeatureLevels,
+      ppDevice);
+  }
   
   DLLEXPORT HRESULT __stdcall D3D11CreateDevice(
           IDXGIAdapter*         pAdapter,
@@ -146,9 +163,9 @@ extern "C" {
     // Create the actual device
     Com<ID3D11Device> device;
     
-    HRESULT hr = D3D11CoreCreateDevice(
+    HRESULT hr = DXVKCoreCreateDevice(
       dxgiFactory.ptr(), dxgiAdapter.ptr(),
-      Flags, pFeatureLevels, FeatureLevels,
+      Flags, SDKVersion | DxvkDevice::Direct3D11APIToken, pFeatureLevels, FeatureLevels,
       &device);
     
     if (FAILED(hr))

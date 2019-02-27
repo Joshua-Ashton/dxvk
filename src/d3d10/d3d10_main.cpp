@@ -5,6 +5,8 @@
 
 #include "../dxgi/dxgi_adapter.h"
 
+#include "../dxvk/dxvk_device.h"
+
 namespace dxvk {
   Logger Logger::s_instance("d3d10.log");
 }
@@ -12,19 +14,23 @@ namespace dxvk {
 extern "C" {
   using namespace dxvk;
 
-  HRESULT __stdcall D3D11CoreCreateDevice(
-          IDXGIFactory*       pFactory,
-          IDXGIAdapter*       pAdapter,
-          UINT                Flags,
-    const D3D_FEATURE_LEVEL*  pFeatureLevels,
-          UINT                FeatureLevels,
-          ID3D11Device**      ppDevice);
+  HRESULT __stdcall D3D11CreateDevice(
+          IDXGIAdapter*         pAdapter,
+          D3D_DRIVER_TYPE       DriverType,
+          HMODULE               Software,
+          UINT                  Flags,
+    const D3D_FEATURE_LEVEL*    pFeatureLevels,
+          UINT                  FeatureLevels,
+          UINT                  SDKVersion,
+          ID3D11Device**        ppDevice,
+          D3D_FEATURE_LEVEL*    pFeatureLevel,
+          ID3D11DeviceContext** ppImmediateContext);
 
-
-  DLLEXPORT HRESULT __stdcall D3D10CoreCreateDevice(
+  HRESULT DXVK10CoreCreateDevice(
           IDXGIFactory*           pFactory,
           IDXGIAdapter*           pAdapter,
           UINT                    Flags,
+          UINT                    SDKVersion,
           D3D_FEATURE_LEVEL       FeatureLevel,
           ID3D10Device**          ppDevice) {
     Com<ID3D11Device> d3d11Device;
@@ -38,8 +44,9 @@ extern "C" {
     if (FAILED(hr))
       return hr;
 
-    hr = D3D11CoreCreateDevice(pFactory, pAdapter,
-      Flags, &FeatureLevel, 1, &d3d11Device);
+    hr = D3D11CreateDevice(pAdapter, pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, nullptr,
+      Flags, &FeatureLevel, 1, SDKVersion | DxvkDevice::Direct3D10APIToken,
+      &d3d11Device, nullptr, nullptr);
 
     if (FAILED(hr))
       return hr;
@@ -55,6 +62,20 @@ extern "C" {
     return S_OK;
   }
 
+  DLLEXPORT HRESULT __stdcall D3D10CoreCreateDevice(
+          IDXGIFactory*           pFactory,
+          IDXGIAdapter*           pAdapter,
+          UINT                    Flags,
+          D3D_FEATURE_LEVEL       FeatureLevel,
+          ID3D10Device**          ppDevice) {
+    return DXVK10CoreCreateDevice(
+      pFactory,
+      pAdapter,
+      Flags,
+      DxvkDevice::Direct3D10APIToken,
+      FeatureLevel,
+      ppDevice);
+  }
 
   DLLEXPORT HRESULT __stdcall D3D10CreateDevice1(
           IDXGIAdapter*           pAdapter,
@@ -98,9 +119,9 @@ extern "C" {
     // Create the actual device
     Com<ID3D10Device> device;
 
-    HRESULT hr = D3D10CoreCreateDevice(
+    HRESULT hr = DXVK10CoreCreateDevice(
       dxgiFactory.ptr(), dxgiAdapter.ptr(),
-      Flags, D3D_FEATURE_LEVEL(HardwareLevel),
+      Flags, SDKVersion, D3D_FEATURE_LEVEL(HardwareLevel),
       &device);
     
     if (FAILED(hr))
