@@ -513,7 +513,7 @@ namespace dxvk {
     const Rc<DxvkImageView>&    imageView,
           VkImageAspectFlags    clearAspects,
     const VkClearValue&         clearValue) {
-    this->updateFramebuffer();
+    this->updateFramebuffer(false);
 
     // Prepare attachment ops
     DxvkColorAttachmentOps colorOp;
@@ -1786,7 +1786,7 @@ namespace dxvk {
           VkOffset3D            offset,
           VkExtent3D            extent,
           VkClearValue          value) {
-    this->updateFramebuffer();
+    this->updateFramebuffer(false);
 
     // Find out if the render target view is currently bound,
     // so that we can avoid spilling the render pass if it is.
@@ -2781,7 +2781,7 @@ namespace dxvk {
       // Retrieve and bind actual Vulkan pipeline handle
       m_gpActivePipeline = m_state.gp.pipeline != nullptr && m_state.om.framebuffer != nullptr
         ? m_state.gp.pipeline->getPipelineHandle(m_state.gp.state,
-            m_state.om.framebuffer->getRenderPass())
+            m_state.om.framebuffer->getRenderPass(), this->checkAsyncCompilationCompat())
         : VK_NULL_HANDLE;
       
       if (m_gpActivePipeline != VK_NULL_HANDLE) {
@@ -3030,7 +3030,7 @@ namespace dxvk {
   }
   
   
-  void DxvkContext::updateFramebuffer() {
+  void DxvkContext::updateFramebuffer(bool isDraw) {
     if (m_flags.test(DxvkContextFlag::GpDirtyFramebuffer)) {
       m_flags.clr(DxvkContextFlag::GpDirtyFramebuffer);
       
@@ -3047,6 +3047,11 @@ namespace dxvk {
         m_state.gp.state.omComponentMapping[i] = attachment != nullptr
           ? util::invertComponentMapping(attachment->info().swizzle)
           : VkComponentMapping();
+      }
+
+      if (isDraw) {
+        for (uint32_t i = 0; i < fb->numAttachments(); i++)
+          fb->getAttachment(i).view->setRtBindingFrameId(m_device->getCurrentFrameId());
       }
 
       m_flags.set(DxvkContextFlag::GpDirtyPipelineState);
@@ -3260,7 +3265,7 @@ namespace dxvk {
   
   void DxvkContext::commitGraphicsState(bool indexed) {
     if (m_flags.test(DxvkContextFlag::GpDirtyFramebuffer))
-      this->updateFramebuffer();
+      this->updateFramebuffer(true);
 
     if (!m_flags.test(DxvkContextFlag::GpRenderPassBound))
       this->startRenderPass();
@@ -3495,4 +3500,13 @@ namespace dxvk {
     }
   }
   
+
+  bool DxvkContext::checkAsyncCompilationCompat() {
+    bool fbCompat = true;
+    for (uint32_t i = 0; fbCompat && i < m_state.om.framebuffer->numAttachments(); i++) {
+      const auto& attachment = m_state.om.framebuffer->getAttachment(i);
+      fbCompat &= attachment.view->getRtBindingAsyncCompilationCompat();
+    }
+    return fbCompat;
+  }
 }

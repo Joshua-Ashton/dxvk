@@ -247,7 +247,7 @@ namespace dxvk {
         const auto& entry = m_entries[e->second];
 
         auto rp = m_passManager->getRenderPass(entry.format);
-        pipeline->getPipelineHandle(entry.gpState, *rp);
+        pipeline->getPipelineHandle(entry.gpState, *rp, false);
       }
     } else {
       auto pipeline = m_pipeManager->createComputePipeline(item.cs);

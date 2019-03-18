@@ -45,9 +45,13 @@ namespace dxvk {
   : m_device    (device),
     m_cache     (new DxvkPipelineCache(device->vkd())) {
     std::string useStateCache = env::getEnvVar("DXVK_STATE_CACHE");
+    std::string useAsync      = env::getEnvVar("DXVK_ASYNC");
     
     if (useStateCache != "0" && device->config().enableStateCache)
       m_stateCache = new DxvkStateCache(device, this, passManager);
+
+    if (useAsync == "1")
+      m_compiler = new DxvkPipelineCompiler();
   }
   
   
