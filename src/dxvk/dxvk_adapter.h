@@ -250,6 +250,15 @@ namespace dxvk {
      * and general troubleshooting.
      */
     void logAdapterInfo() const;
+
+    /**
+     * \brief Determines whether a device is 'low memory' or not.
+     * 
+     * Determines whether a device is 'low memory' or not.
+     * We then use this to determine whether or not we should
+     * use a mapping buffer for dynamic usage resources.
+     */
+    bool lowMemory() const;
     
   private:
     
@@ -263,6 +272,7 @@ namespace dxvk {
     DxvkDeviceFeatures  m_deviceFeatures;
 
     bool                m_hasMemoryBudget;
+    bool                m_lowMemory;
     
     std::vector<VkQueueFamilyProperties> m_queueFamilies;
 

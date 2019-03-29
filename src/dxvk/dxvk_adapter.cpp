@@ -19,6 +19,26 @@ namespace dxvk {
     this->queryDeviceQueues();
 
     m_hasMemoryBudget = m_deviceExtensions.supports(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+
+    VkDeviceSize totalVideoMemory = 0;
+
+    // Get the total amount of video memory local entirely to the device.
+
+    DxvkAdapterMemoryInfo memInfo = this->getMemoryHeapInfo();
+    VkMemoryHeapFlags heapFlagMask = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT;
+
+    for (uint32_t i = 0; i < memInfo.heapCount; i++) {
+      if (!(memInfo.heaps[i].heapFlags & heapFlagMask))
+        continue;
+
+      totalVideoMemory +=
+        memInfo.heaps[i].memoryAvailable
+      + memInfo.heaps[i].memoryAllocated;
+    }
+
+    m_lowMemory = m_instance->options().enableLowMemoryChecks
+      ? totalVideoMemory < m_instance->options().lowMemoryThreshold
+      : false;
   }
   
   
@@ -433,6 +453,10 @@ namespace dxvk {
     }
   }
   
+  bool DxvkAdapter::lowMemory() const {
+    return m_lowMemory;
+  }
+
   
   void DxvkAdapter::initHeapAllocInfo() {
     for (uint32_t i = 0; i < m_heapAlloc.size(); i++)

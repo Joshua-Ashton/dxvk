@@ -7,6 +7,8 @@ namespace dxvk {
     numCompilerThreads    = config.getOption<int32_t> ("dxvk.numCompilerThreads",     0);
     useRawSsbo            = config.getOption<Tristate>("dxvk.useRawSsbo",             Tristate::Auto);
     useEarlyDiscard       = config.getOption<Tristate>("dxvk.useEarlyDiscard",        Tristate::Auto);
+    enableLowMemoryChecks = config.getOption<bool>    ("dxvk.enableLowMemoryChecks",  true);
+    lowMemoryThreshold    = config.getOption<int32_t> ("dxvk.lowMemoryThreshold",     4096);
   }
 
 }

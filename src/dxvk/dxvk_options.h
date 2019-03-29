@@ -18,6 +18,11 @@ namespace dxvk {
     /// Shader-related options
     Tristate useRawSsbo;
     Tristate useEarlyDiscard;
+
+    /// Enable low memory checks.
+    bool enableLowMemoryChecks;
+    /// The amount of memory in MB to be considered a 'low memory' device
+    int32_t lowMemoryThreshold;
   };
 
 }
