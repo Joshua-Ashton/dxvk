@@ -388,7 +388,7 @@ namespace dxvk {
     // 2. Since the image will most likely be read for rendering by the GPU,
     //    writing the image to device-local image may be more efficient than
     //    reading its contents from host-visible memory.
-    if (m_desc.Usage == D3D11_USAGE_DYNAMIC)
+    if (m_desc.Usage == D3D11_USAGE_DYNAMIC && !m_device->IsLowMemory())
       return D3D11_COMMON_TEXTURE_MAP_MODE_BUFFER;
     
     // Depth-stencil formats in D3D11 can be mapped and follow special
