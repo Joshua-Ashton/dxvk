@@ -339,6 +339,10 @@ namespace dxvk {
     static DxvkDeviceFeatures GetDeviceFeatures(
       const Rc<DxvkAdapter>&  adapter,
             D3D_FEATURE_LEVEL featureLevel);
+
+    bool IsLowMemory() const {
+      return m_dxvkAdapter->lowMemory();
+    }
     
   private:
     
