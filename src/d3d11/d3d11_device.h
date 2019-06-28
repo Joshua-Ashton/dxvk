@@ -390,6 +390,12 @@ namespace dxvk {
     BOOL GetImageTypeSupport(
             VkFormat    Format,
             VkImageType Type) const;
+
+    HRESULT OpenSharedResourceGeneric(
+        BOOL        NTHandle,
+        HANDLE      hResource,
+        REFIID      ReturnedInterface,
+        void**      ppResource);
     
     static D3D_FEATURE_LEVEL GetMaxFeatureLevel(
       const Rc<DxvkAdapter>&        Adapter);

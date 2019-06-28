@@ -60,7 +60,8 @@ namespace dxvk {
     D3D11CommonTexture(
             D3D11Device*                pDevice,
       const D3D11_COMMON_TEXTURE_DESC*  pDesc,
-            D3D11_RESOURCE_DIMENSION    Dimension);
+            D3D11_RESOURCE_DIMENSION    Dimension,
+            HANDLE                      hSharedHandle    = nullptr);
     
     ~D3D11CommonTexture();
     
@@ -120,6 +121,14 @@ namespace dxvk {
      */
     Rc<DxvkImage> GetImage() const {
       return m_image;
+    }
+
+    /**
+     * \brief The Shared Handle
+     * \returns The Shared Handle
+     */
+    HANDLE GetSharedHandle() const {
+      return m_sharedHandle;
     }
     
     /**
@@ -212,6 +221,8 @@ namespace dxvk {
     Rc<DxvkImage>                 m_image;
     std::vector<Rc<DxvkBuffer>>   m_buffers;
     std::vector<D3D11_MAP>        m_mapTypes;
+
+    HANDLE                        m_sharedHandle;
     
     Rc<DxvkBuffer> CreateMappedBuffer(
             UINT                  MipLevel) const;
@@ -417,7 +428,8 @@ namespace dxvk {
     
     D3D11Texture2D(
             D3D11Device*                pDevice,
-      const D3D11_COMMON_TEXTURE_DESC*  pDesc);
+      const D3D11_COMMON_TEXTURE_DESC*  pDesc,
+            HANDLE                      hSharedHandle    = nullptr);
     
     ~D3D11Texture2D();
     

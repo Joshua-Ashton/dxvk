@@ -1,13 +1,17 @@
 #include "d3d11_device.h"
 #include "d3d11_texture.h"
 
+#include "../util/util_shared_resources.h"
+
 namespace dxvk {
   
   D3D11CommonTexture::D3D11CommonTexture(
           D3D11Device*                pDevice,
     const D3D11_COMMON_TEXTURE_DESC*  pDesc,
-          D3D11_RESOURCE_DIMENSION    Dimension)
-  : m_device(pDevice), m_desc(*pDesc) {
+          D3D11_RESOURCE_DIMENSION    Dimension,
+          HANDLE                      hSharedHandle)
+  : m_device(pDevice), m_desc(*pDesc),
+    m_sharedHandle    (hSharedHandle) {
     DXGI_VK_FORMAT_MODE   formatMode   = GetFormatMode();
     DXGI_VK_FORMAT_INFO   formatInfo   = m_device->LookupFormat(m_desc.Format, formatMode);
     DXGI_VK_FORMAT_FAMILY formatFamily = m_device->LookupFamily(m_desc.Format, formatMode);
@@ -29,6 +33,21 @@ namespace dxvk {
                               | VK_ACCESS_TRANSFER_WRITE_BIT;
     imageInfo.tiling          = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.layout          = VK_IMAGE_LAYOUT_GENERAL;
+
+    bool ntHandle = m_desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
+    bool shared   = m_desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED;
+         shared  |= ntHandle;
+
+    if (m_desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX)
+      Logger::warn("D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX: not supported.");
+    
+    if (shared) {
+      imageInfo.sharing.type = ntHandle
+        ? VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT
+        : VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_KMT_BIT;
+
+      imageInfo.sharing.handle = m_sharedHandle;
+    }
 
     DecodeSampleCount(m_desc.SampleDesc.Count, &imageInfo.sampleCount);
 
@@ -184,11 +203,27 @@ namespace dxvk {
     }
     
     m_image = m_device->GetDXVKDevice()->createImage(imageInfo, memoryProperties);
+
+    if (imageInfo.sharing.isExport()) {
+      m_sharedHandle = m_image->sharedHandle();
+
+      if (!OpenSharedResourceInfo(true, ntHandle, m_sharedHandle, &m_desc))
+        Logger::warn("D3D11: Failed to write shared resource info for a texture");
+    }
   }
   
   
   D3D11CommonTexture::~D3D11CommonTexture() {
-    
+    if (m_sharedHandle) {
+      bool ntHandle = m_desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
+
+      std::string name = DetermineSharedResourceFileName(ntHandle, m_sharedHandle);
+      DeleteFileA(name.c_str());
+
+      // If we have an NT handle we must close that.
+      if (ntHandle)
+        CloseHandle(m_sharedHandle);
+    }
   }
   
   
@@ -282,9 +317,12 @@ namespace dxvk {
                          != (D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET))
       return E_INVALIDARG;
 
+    // Shared resources may only have 1 mip. Native clamps this.
+    bool shared = pDesc->MiscFlags & (D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_NTHANDLE);
+
     // Use the maximum possible mip level count if the supplied
     // mip level count is either unspecified (0) or invalid
-    const uint32_t maxMipLevelCount = pDesc->SampleDesc.Count <= 1
+    const uint32_t maxMipLevelCount = (pDesc->SampleDesc.Count <= 1 && !shared)
       ? util::computeMipLevelCount({ pDesc->Width, pDesc->Height, pDesc->Depth })
       : 1u;
     
@@ -857,8 +895,9 @@ namespace dxvk {
   //      D 3 D 1 1 T E X T U R E 2 D
   D3D11Texture2D::D3D11Texture2D(
           D3D11Device*                pDevice,
-    const D3D11_COMMON_TEXTURE_DESC*  pDesc)
-  : m_texture (pDevice, pDesc, D3D11_RESOURCE_DIMENSION_TEXTURE2D),
+    const D3D11_COMMON_TEXTURE_DESC*  pDesc,
+          HANDLE                      hSharedHandle)
+  : m_texture (pDevice, pDesc, D3D11_RESOURCE_DIMENSION_TEXTURE2D, hSharedHandle),
     m_interop (this, &m_texture),
     m_surface (this, &m_texture),
     m_resource(this),

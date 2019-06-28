@@ -46,6 +46,10 @@ namespace dxvk {
     (memFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
       ? InitHostVisibleTexture(pTexture, pInitialData)
       : InitDeviceLocalTexture(pTexture, pInitialData);
+
+    // Flush if we are a shared texture.
+    if (pTexture->GetSharedHandle() != nullptr)
+      Flush();
   }
 
 

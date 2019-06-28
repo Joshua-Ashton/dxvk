@@ -7,6 +7,8 @@
 #include "../dxvk/dxvk_adapter.h"
 #include "../dxvk/dxvk_instance.h"
 
+#include "../util/util_shared_resources.h"
+
 #include "d3d11_buffer.h"
 #include "d3d11_class_linkage.h"
 #include "d3d11_context_def.h"
@@ -1085,10 +1087,7 @@ namespace dxvk {
           HANDLE      hResource,
           REFIID      ReturnedInterface,
           void**      ppResource) {
-    InitReturnPtr(ppResource);
-    
-    Logger::err("D3D11Device::OpenSharedResource: Not implemented");
-    return E_NOTIMPL;
+    return OpenSharedResourceGeneric(false, hResource, ReturnedInterface, ppResource);
   }
   
   
@@ -1096,10 +1095,7 @@ namespace dxvk {
           HANDLE      hResource,
           REFIID      ReturnedInterface,
           void**      ppResource) {
-    InitReturnPtr(ppResource);
-    
-    Logger::err("D3D11Device::OpenSharedResource1: Not implemented");
-    return E_NOTIMPL;
+    return OpenSharedResourceGeneric(true, hResource, ReturnedInterface, ppResource);
   }
 
   
@@ -1738,6 +1734,35 @@ namespace dxvk {
     }
     
     return status == VK_SUCCESS;
+  }
+
+
+  HRESULT D3D11Device::OpenSharedResourceGeneric(
+      BOOL        NTHandle,
+      HANDLE      hResource,
+      REFIID      ReturnedInterface,
+      void**      ppResource) {
+    InitReturnPtr(ppResource);
+    
+    D3D11_COMMON_TEXTURE_DESC desc;
+    if (!OpenSharedResourceInfo(false, NTHandle, hResource, &desc)) {
+      Logger::warn("D3D11: Failed to read shared resource info for a texture");
+      return E_INVALIDARG;
+    }
+
+    if (ppResource == nullptr)
+      return S_FALSE;
+    
+    // Only 2D textures may be shared!
+    try {
+      const Com<D3D11Texture2D> texture = new D3D11Texture2D(this, &desc, hResource);
+      texture->QueryInterface(ReturnedInterface, ppResource);
+      return S_OK;
+    }
+    catch (const DxvkError& e) {
+      Logger::err(e.message());
+      return E_INVALIDARG;
+    }
   }
   
   
