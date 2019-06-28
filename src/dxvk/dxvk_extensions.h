@@ -277,6 +277,8 @@ namespace dxvk {
     DxvkExt khrSamplerMirrorClampToEdge     = { VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,     DxvkExtMode::Optional };
     DxvkExt khrShaderDrawParameters         = { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,           DxvkExtMode::Required };
     DxvkExt khrSwapchain                    = { VK_KHR_SWAPCHAIN_EXTENSION_NAME,                        DxvkExtMode::Required };
+    DxvkExt khrExternalMemory               = { VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,                  DxvkExtMode::Optional };
+    DxvkExt khrExternalMemoryWin32          = { VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,            DxvkExtMode::Optional };
   };
   
   /**

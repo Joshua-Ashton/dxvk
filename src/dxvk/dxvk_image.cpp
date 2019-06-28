@@ -9,17 +9,27 @@ namespace dxvk {
           VkMemoryPropertyFlags memFlags)
   : m_vkd(vkd), m_info(createInfo), m_memFlags(memFlags) {
 
+    // Is resource sharing supported (ie. the extension)
+    // Let's ask our allocator who actually has a DxvkDevice.
+    bool sharingSupported = memAlloc.supportsResourceSharing();
+
     // Copy the compatible view formats to a persistent array
     m_viewFormats.resize(createInfo.viewFormatCount);
     for (uint32_t i = 0; i < createInfo.viewFormatCount; i++)
       m_viewFormats[i] = createInfo.viewFormats[i];
     m_info.viewFormats = m_viewFormats.data();
 
+    // If a resource is shared, we should tell the image...
+    VkExternalMemoryImageCreateInfo externalInfo;
+    externalInfo.sType        = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+    externalInfo.pNext        = nullptr;
+    externalInfo.handleTypes  = createInfo.sharing.type;
+
     // If defined, we should provide a format list, which
     // allows some drivers to enable image compression
     VkImageFormatListCreateInfoKHR formatList;
     formatList.sType           = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR;
-    formatList.pNext           = nullptr;
+    formatList.pNext           = (sharingSupported && createInfo.sharing.isShared()) ? &externalInfo : nullptr;
     formatList.viewFormatCount = createInfo.viewFormatCount;
     formatList.pViewFormats    = createInfo.viewFormats;
     
@@ -75,14 +85,34 @@ namespace dxvk {
     memReqInfo.image = m_image;
     memReqInfo.pNext = VK_NULL_HANDLE;
 
+    VkExportMemoryAllocateInfo exportInfo;
+    exportInfo.sType       = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
+    exportInfo.pNext       = nullptr;
+    exportInfo.handleTypes = createInfo.sharing.type;
+
+    VkImportMemoryWin32HandleInfoKHR importInfo;
+    importInfo.sType       = VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
+    importInfo.pNext       = nullptr;
+    importInfo.handleType  = createInfo.sharing.type;
+    importInfo.handle      = createInfo.sharing.handle;
+    importInfo.name        = nullptr;
+
+    const void* sharingInfo = createInfo.sharing.isImport() ? (const void*) &importInfo : (const void*) &exportInfo;
+
     VkMemoryDedicatedAllocateInfoKHR dedMemoryAllocInfo;
     dedMemoryAllocInfo.sType  = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR;
-    dedMemoryAllocInfo.pNext  = VK_NULL_HANDLE;
+    dedMemoryAllocInfo.pNext  = (sharingSupported && createInfo.sharing.isShared()) ? sharingInfo : nullptr;
     dedMemoryAllocInfo.buffer = VK_NULL_HANDLE;
     dedMemoryAllocInfo.image  = m_image;
     
     m_vkd->vkGetImageMemoryRequirements2KHR(
       m_vkd->device(), &memReqInfo, &memReq);
+
+    // We must force dedicated allocation for shared resources...
+    if (sharingSupported && createInfo.sharing.isShared()) {
+      dedicatedRequirements.prefersDedicatedAllocation  = VK_TRUE;
+      dedicatedRequirements.requiresDedicatedAllocation = VK_TRUE;
+    }
  
     if (info.tiling != VK_IMAGE_TILING_LINEAR) {
       memReq.memoryRequirements.size      = align(memReq.memoryRequirements.size,       memAlloc.bufferImageGranularity());
@@ -105,6 +135,17 @@ namespace dxvk {
     if (m_vkd->vkBindImageMemory(m_vkd->device(),
           m_image, m_memory.memory(), m_memory.offset()) != VK_SUCCESS)
       throw DxvkError("DxvkImage::DxvkImage: Failed to bind device memory");
+
+    if (sharingSupported && createInfo.sharing.isExport()) {
+      VkMemoryGetWin32HandleInfoKHR handleInfo;
+      handleInfo.sType      = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+      handleInfo.pNext      = nullptr;
+      handleInfo.handleType = createInfo.sharing.type;
+      handleInfo.memory     = m_memory.memory();
+
+      if(m_vkd->vkGetMemoryWin32HandleKHR(m_vkd->device(), &handleInfo, &m_sharedHandle) != VK_SUCCESS)
+        Logger::warn("DxvkImage::DxvkImage: Failed to get shared handle for image");
+    }
   }
   
   

@@ -17,6 +17,24 @@ namespace dxvk {
     VkDeviceSize memoryAllocated = 0;
     VkDeviceSize memoryUsed      = 0;
   };
+
+
+  /**
+   * \brief Shared handle info
+   *
+   * The shared resource information for a given resource.
+   * IMPORT:     type = [handle type], handle = [shared handle]
+   * EXPORT:     type = [handle type], handle = nullptr
+   * NOT SHARED: type = [VK_EXTERNAL_MEMORY_HANDLE_TYPE_FLAG_BITS_MAX_ENUM], handle = anything
+   */
+  struct DxvkSharedHandleInfo {
+    VkExternalMemoryHandleTypeFlagBits type   = VK_EXTERNAL_MEMORY_HANDLE_TYPE_FLAG_BITS_MAX_ENUM;
+    HANDLE                             handle = nullptr;
+
+    bool isShared() const { return type != VK_EXTERNAL_MEMORY_HANDLE_TYPE_FLAG_BITS_MAX_ENUM; }
+    bool isImport() const { return isShared() &&  handle; }
+    bool isExport() const { return isShared() && !handle; }
+  };
   
   
   /**
@@ -260,6 +278,14 @@ namespace dxvk {
      * \returns Global memory stats
      */
     DxvkMemoryStats getMemoryStats();
+
+    /**
+     * \brief Supports resource sharing
+     *
+     * Returns whether or not the device/instance
+     * supports resource sharing.
+     */
+    bool supportsResourceSharing();
     
   private:
 

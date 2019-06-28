@@ -238,6 +238,12 @@ namespace dxvk {
       
     return totalStats;
   }
+
+
+  bool DxvkMemoryAllocator::supportsResourceSharing() {
+    return m_device->extensions().khrExternalMemory &&
+           m_device->extensions().khrExternalMemoryWin32;
+  }
   
   
   DxvkMemory DxvkMemoryAllocator::tryAlloc(

@@ -52,6 +52,9 @@ namespace dxvk {
     /// Common image layout
     VkImageLayout layout;
 
+    /// Shared handle info
+    DxvkSharedHandleInfo sharing;
+
     // Image view formats that can
     // be used with this image
     uint32_t        viewFormatCount = 0;
@@ -192,6 +195,14 @@ namespace dxvk {
     VkExtent3D mipLevelExtent(uint32_t level) const {
       return util::computeMipLevelExtent(m_info.extent, level);
     }
+
+    /**
+     * \brief Shared handle
+     * \returns Shared handle
+     */
+    HANDLE sharedHandle() const {
+      return m_sharedHandle;
+    }
     
     /**
      * \brief Queries memory layout of a subresource
@@ -268,6 +279,7 @@ namespace dxvk {
     VkMemoryPropertyFlags m_memFlags;
     DxvkMemory            m_memory;
     VkImage               m_image = VK_NULL_HANDLE;
+    HANDLE                m_sharedHandle = nullptr;
 
     std::vector<VkFormat> m_viewFormats;
     
