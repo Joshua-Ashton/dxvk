@@ -309,6 +309,11 @@ namespace dxvk::vk {
     VULKAN_FN(vkCmdBeginQueryIndexedEXT);
     VULKAN_FN(vkCmdEndQueryIndexedEXT);
     #endif
+
+    #ifdef VK_KHR_external_memory_win32
+    VULKAN_FN(vkGetMemoryWin32HandleKHR);
+    VULKAN_FN(vkGetMemoryWin32HandlePropertiesKHR);
+    #endif
   };
   
 }
