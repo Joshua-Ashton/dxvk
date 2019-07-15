@@ -75,13 +75,15 @@ namespace dxvk {
     // executed before trying to access the query
     SynchronizeCsThread();
 
+    const bool flush = !(GetDataFlags & D3D11_ASYNC_GETDATA_DONOTFLUSH);
+
     // Get query status directly from the query object
     auto query = static_cast<D3D11Query*>(pAsync);
     HRESULT hr = query->GetData(pData, GetDataFlags);
     
     // If we're likely going to spin on the asynchronous object,
     // flush the context so that we're keeping the GPU busy
-    if (hr == S_FALSE) {
+    if (hr == S_FALSE && flush) {
       query->NotifyStall();
       FlushImplicit(FALSE);
     }
