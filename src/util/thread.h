@@ -9,8 +9,13 @@
 #include "./rc/util_rc.h"
 #include "./rc/util_rc_ptr.h"
 
+#ifdef DXVK_NATIVE
+#include <thread>
+#endif
+
 namespace dxvk {
 
+#ifndef DXVK_NATIVE
   /**
    * \brief Thread priority
    */
@@ -138,10 +143,36 @@ namespace dxvk {
 
   };
 
+  using thread_id = uint32_t;
 
   namespace this_thread {
     inline void yield() {
       Sleep(0);
     }
+
+    inline thread_id get_id() {
+      return GetCurrentThreadId();
+    }
   }
+
+#else
+
+  using thread = std::thread;
+
+  using thread_id = uint64_t;
+  static_assert(sizeof(std::thread::id) == sizeof(uint64_t));
+
+  namespace this_thread {
+    inline void yield() {
+      std::this_thread::yield();
+    }
+
+    inline thread_id get_id() {
+       auto id = std::this_thread::get_id();
+       return *reinterpret_cast<thread_id*>(&id);
+    }
+  }
+
+#endif
+
 }

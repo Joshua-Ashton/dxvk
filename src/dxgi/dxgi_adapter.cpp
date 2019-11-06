@@ -141,7 +141,7 @@ namespace dxvk {
     }
     
     // TODO support multiple monitors
-    HMONITOR monitor = ::MonitorFromPoint({ 0, 0 }, MONITOR_DEFAULTTOPRIMARY);
+    HMONITOR monitor = GetPrimaryMonitor();
     *ppOutput = ref(new DxgiOutput(m_factory, this, monitor));
     return S_OK;
   }
@@ -223,8 +223,13 @@ namespace dxvk {
     
     // Convert device name
     std::memset(pDesc->Description, 0, sizeof(pDesc->Description));
+
+#ifndef DXVK_NATIVE
     ::MultiByteToWideChar(CP_UTF8, 0, deviceProp.deviceName, -1,
         pDesc->Description, sizeof(pDesc->Description) / sizeof(*pDesc->Description));
+#else
+    mbstowcs(pDesc->Description, deviceProp.deviceName, sizeof(pDesc->Description) / sizeof(*pDesc->Description));
+#endif
     
     // Get amount of video memory
     // based on the Vulkan heaps

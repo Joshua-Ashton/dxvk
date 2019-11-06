@@ -216,6 +216,8 @@ namespace dxvk::vk {
 
     VkResult createSurface();
 
+    VkResult createPlatformSurface();
+
     void destroySwapchain();
 
     void destroySurface();

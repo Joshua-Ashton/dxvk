@@ -76,6 +76,7 @@ namespace dxvk {
    * \returns S_OK on success
    */
   HRESULT SetMonitorDisplayMode(
+          HWND                    hWnd,
           HMONITOR                hMonitor,
     const DXGI_MODE_DESC*         pMode);
   
@@ -90,5 +91,12 @@ namespace dxvk {
           HWND                    hWnd,
           UINT*                   pWidth,
           UINT*                   pHeight);
+
+  /**
+   * \brief Get the system's primary monitor
+   * 
+   * \returns A handle the the primary monitor
+   */
+  HMONITOR GetPrimaryMonitor();
 
 }

@@ -22,8 +22,8 @@ namespace dxvk {
 
   private:
 
-    std::atomic<uint32_t> m_owner   = { 0u };
-    uint32_t              m_counter = { 0u };
+    std::atomic<thread_id> m_owner   = { 0u };
+    uint32_t               m_counter = { 0u };
     
   };
 

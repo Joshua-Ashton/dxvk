@@ -17,8 +17,8 @@ namespace dxvk {
 
 
   bool D3D10DeviceMutex::try_lock() {
-    uint32_t threadId = GetCurrentThreadId();
-    uint32_t expected = 0;
+    thread_id threadId = dxvk::this_thread::get_id();
+    thread_id expected = 0;
 
     bool status = m_owner.compare_exchange_weak(
       expected, threadId, std::memory_order_acquire);
