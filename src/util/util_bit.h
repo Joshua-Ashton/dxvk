@@ -164,5 +164,73 @@ namespace dxvk::bit {
     return !std::memcmp(a, b, sizeof(T));
     #endif
   }
+
+  template <size_t Bits>
+  class bitset {
+    static constexpr size_t Dwords = align(Bits, 32) / 32;
+  public:
+
+    bitset()
+      : m_dwords() {
+
+    }
+
+    template <bool Value>
+    constexpr void set(uint32_t idx) {
+      const uint32_t dword = idx / 32;
+      const uint32_t bit   = idx % 32;
+
+      if (Value)
+        m_dwords[dword] &= ~(1u << bit);
+      else
+        m_dwords[dword] |= 1u << bit;
+    }
+
+    constexpr void flip(uint32_t idx) {
+      const uint32_t dword = idx / 32;
+      const uint32_t bit   = idx % 32;
+
+      m_dwords[dword] ^= 1u << bit;
+    }
+
+    constexpr void setAll() {
+      if constexpr (Bits % 32 == 0) {
+        for (size_t i = 0; i < Dwords; i++)
+          m_dwords[i] = std::numeric_limits<uint32_t>::max();
+      }
+      else {
+        for (size_t i = 0; i < Dwords - 1; i++)
+          m_dwords[i] = std::numeric_limits<uint32_t>::max();
+
+        m_dwords[Dwords - 1] = (1u << (Bits % 32)) - 1;
+      }
+    }
+
+    constexpr bool any() {
+      for (size_t i = 0; i < Dwords; i++) {
+        if (m_dwords[i] != 0)
+          return true;
+      }
+
+      return false;
+    }
+
+    constexpr uint32_t& dword(uint32_t idx) {
+      return m_dwords[idx];
+    }
+
+    constexpr size_t bitCount() {
+      return Bits;
+    }
+
+    constexpr size_t dwordCount() {
+      return Dwords;
+    }
+
+  private:
+
+    std::array<uint32_t, Dwords> m_dwords;
+
+  };
   
 }
