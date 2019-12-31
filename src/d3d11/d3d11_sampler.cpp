@@ -8,23 +8,26 @@ namespace dxvk {
           D3D11Device*        device,
     const D3D11_SAMPLER_DESC& desc)
   : m_device(device), m_desc(desc), m_d3d10(this) {
+    m_desc.MinLOD = 4;
+    m_desc.MaxLOD = std::max(m_desc.MinLOD, m_desc.MaxLOD);
+
     DxvkSamplerCreateInfo info;
     
     // While D3D11_FILTER is technically an enum, its value bits
     // can be used to decode the filter properties more efficiently.
     const uint32_t filterBits = uint32_t(desc.Filter);
-    info.magFilter      = (filterBits & 0x04) ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
-    info.minFilter      = (filterBits & 0x10) ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
+    info.magFilter      = VK_FILTER_NEAREST;
+    info.minFilter      = VK_FILTER_NEAREST;
     
     // Set up the remaining properties, which are
     // stored directly in the sampler description
     info.mipmapMode     = (filterBits & 0x01) ? VK_SAMPLER_MIPMAP_MODE_LINEAR : VK_SAMPLER_MIPMAP_MODE_NEAREST;
     info.mipmapLodBias  = desc.MipLODBias;
-    info.mipmapLodMin   = desc.MinLOD;
-    info.mipmapLodMax   = desc.MaxLOD;
+    info.mipmapLodMin   = m_desc.MinLOD;
+    info.mipmapLodMax   = m_desc.MaxLOD;
     
-    info.useAnisotropy  = (filterBits & 0x40) ? VK_TRUE : VK_FALSE;
-    info.maxAnisotropy  = float(desc.MaxAnisotropy);
+    info.useAnisotropy  = false;
+    info.maxAnisotropy  = 1.0f;
     
     info.addressModeU   = DecodeAddressMode(desc.AddressU);
     info.addressModeV   = DecodeAddressMode(desc.AddressV);

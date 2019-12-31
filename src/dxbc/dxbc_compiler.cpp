@@ -5783,6 +5783,33 @@ namespace dxvk {
       auto sv    = svMapping.sv;
       auto mask  = svMapping.regMask;
       auto value = emitValueLoad(outputReg);
+
+      if (svMapping.sv == DxbcSystemValue::Position) {
+        // Round the vertex
+        uint32_t floatType = m_module.defFloatType(32);
+        uint32_t vec2Type  = m_module.defVectorType(floatType, 2);
+        uint32_t vec4Type  = m_module.defVectorType(floatType, 4);
+
+        uint32_t positionId = value.id;
+        std::array<uint32_t, 4> indices = { 0, 1, 2, 3 };
+        const uint32_t wIndex = 3;
+
+        uint32_t xy  = m_module.opVectorShuffle(vec2Type, positionId, positionId, 2, indices.data());
+        uint32_t w   = m_module.opCompositeExtract(floatType, positionId, 1, &wIndex);
+        uint32_t rhw = m_module.opFDiv(floatType, m_module.constf32(1.0f), w);
+    
+        xy = m_module.opVectorTimesScalar(vec2Type, xy, rhw);
+        xy = m_module.opVectorTimesScalar(vec2Type, xy, m_module.constf32(160.0f));
+        xy = m_module.opRound(vec2Type, xy);
+        xy = m_module.opVectorTimesScalar(vec2Type, xy, m_module.constf32(1.0f / 160.0f));
+        xy = m_module.opVectorTimesScalar(vec2Type, xy, w);
+
+        std::array<uint32_t, 4> finalIndices = { 0, 1, 4, 5 };
+
+        positionId = m_module.opVectorShuffle(vec4Type, xy, positionId, finalIndices.size(), finalIndices.data());
+
+        value.id = positionId;
+      }
       
       switch (m_programInfo.type()) {
         case DxbcProgramType::VertexShader:   emitVsSystemValueStore(sv, mask, value); break;

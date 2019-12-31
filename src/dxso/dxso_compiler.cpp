@@ -2995,6 +2995,9 @@ void DxsoCompiler::emitControlFlowGenericLoop(
         str::format("in_", elem.semantic.usage, elem.semantic.usageIndex);
       m_module.setDebugName(inputPtr.id, name.c_str());
 
+      //if (elem.semantic.usage == DxsoUsage::Texcoord)
+        //m_module.decorate(inputPtr.id, spv::DecorationNoPerspective);
+
       if (elem.centroid)
         m_module.decorate(inputPtr.id, spv::DecorationCentroid);
 
@@ -3229,6 +3232,7 @@ void DxsoCompiler::emitControlFlowGenericLoop(
     uint32_t clipPlaneCountId = m_module.constu32(caps::MaxClipPlanes);
     
     uint32_t floatType = m_module.defFloatType(32);
+    uint32_t vec2Type  = m_module.defVectorType(floatType, 2);
     uint32_t vec4Type  = m_module.defVectorType(floatType, 4);
     
     // Declare uniform buffer containing clip planes
@@ -3281,9 +3285,28 @@ void DxsoCompiler::emitControlFlowGenericLoop(
       return;
     }
 
-    // Compute clip distances
+    // Round the vertex
     uint32_t positionId = m_module.opLoad(vec4Type, positionPtr);
+    std::array<uint32_t, 4> indices = { 0, 1, 2, 3 };
+    const uint32_t wIndex = 3;
+
+    uint32_t xy  = m_module.opVectorShuffle(vec2Type, positionId, positionId, 2, indices.data());
+    uint32_t w   = m_module.opCompositeExtract(floatType, positionId, 1, &wIndex);
+    uint32_t rhw = m_module.opFDiv(floatType, m_module.constf32(1.0f), w);
     
+    xy = m_module.opVectorTimesScalar(vec2Type, xy, rhw);
+    xy = m_module.opVectorTimesScalar(vec2Type, xy, m_module.constf32(100.0f));
+    xy = m_module.opRound(vec2Type, xy);
+    xy = m_module.opVectorTimesScalar(vec2Type, xy, m_module.constf32(1.0f / 100.0f));
+    xy = m_module.opVectorTimesScalar(vec2Type, xy, w);
+
+    std::array<uint32_t, 4> finalIndices = { 0, 1, 4, 5 };
+
+    positionId = m_module.opVectorShuffle(vec4Type, xy, positionId, finalIndices.size(), finalIndices.data());
+
+    m_module.opStore(m_vs.oPos.id, positionId);
+
+    // Compute clip distances
     for (uint32_t i = 0; i < caps::MaxClipPlanes; i++) {
       std::array<uint32_t, 2> blockMembers = {{
         m_module.constu32(0),
@@ -3373,6 +3396,13 @@ void DxsoCompiler::emitControlFlowGenericLoop(
     DxsoRegister color0;
     color0.id = DxsoRegisterId{ DxsoRegisterType::ColorOut, 0 };
     auto oC0 = this->emitGetOperandPtr(color0);
+
+    uint32_t color_t = getVectorTypeId(oC0.type);
+    uint32_t color = m_module.opLoad(color_t, oC0.id);
+    color = m_module.opVectorTimesScalar(color_t, color, m_module.constf32(32.0f));
+    color = m_module.opRound(color_t, color);
+    color = m_module.opVectorTimesScalar(color_t, color, m_module.constf32(1.0f / 32.0f));
+    m_module.opStore(oC0.id, color);
     
     if (oC0.id) {
       if (m_programInfo.majorVersion() < 3)
